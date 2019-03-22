@@ -36,7 +36,6 @@ public:
 
 
     void insert(const std::pair<const KeyType, ValueType> &pair_) {
-
         size_t pos = hasher_(pair_.first) % htable.size();
         for (const auto &e : htable[pos]) {
             if (e.first == pair_.first) {
@@ -124,7 +123,6 @@ public:
         return *this;
     }
 
-    //-------------------------------
     template<bool IsConstIt = true>
     class Iterator {
 
