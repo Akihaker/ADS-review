@@ -1,80 +1,80 @@
-SUBKHANGULOV_SULTAN_https://official.contest.yandex.ru/contest/11654/run-report/19509348/
-
 #include <vector>
-#include <bits/stdc++.h>
+#include <list>
+#include <stdexcept>
 
-using namespace std;
-
-template<class KeyType, class ValueType, class Hash = std::hash<KeyType> >
+template<class KeyType, class ValueType, class Hash = std::hash<KeyType>>
 class HashMap {
 
 private:
-    std::vector<std::vector<std::pair<const KeyType, ValueType>>> htable;
-    Hash     hasher;
-    size_t   sizer;
+    std::vector<std::vector<std::pair<const KeyType, ValueType>>>   htable;
+    Hash                                                            hasher_;
+    size_t                                                          size_;
 
 
 public:
-
-    HashMap(const Hash _hasher = Hash()) :
-        hasher(_hasher), sizer(0) {
+    HashMap(Hash hasher_ = Hash()) :
+        hasher_(hasher_),
+        size_(0) {
         htable.resize(1);
     }
 
     template<typename Iter>
-    HashMap(Iter _begin, Iter _end, Hash _hasher = Hash()) :
-        hasher(_hasher), sizer(0) {
-
+    HashMap(Iter start, Iter finish, Hash hasher_ = Hash()) :
+        hasher_(hasher_),
+        size_(0) {
         htable.resize(1);
-        while (_begin != _end) {
-            this->insert(*_begin);
-            _begin++;
+        while (start != finish) {
+            insert(*start);
+            start++;
         }
     }
 
-    HashMap(const std::initializer_list<std::pair<KeyType, ValueType>> &list_p, Hash _hasher = Hash()) :
-        HashMap(list_p.begin(), list_p.end(), _hasher) {}
+    HashMap(std::initializer_list<std::pair<const KeyType, ValueType>> list_p, Hash hasher_ = Hash()) :
+        HashMap(list_p.begin(), list_p.end(), hasher_) {}
 
     ~HashMap() {}
 
 
-    void insert(const std::pair<const KeyType, ValueType> &_p) {
+    void insert(const std::pair<const KeyType, ValueType> &pair_) {
 
-        size_t pos = hasher(_p.first) % htable.size();
-        for (auto & e : htable[pos]) {
-            if (e.first == _p.first) {
+        size_t pos = hasher_(pair_.first) % htable.size();
+        for (const auto &e : htable[pos]) {
+            if (e.first == pair_.first) {
                 return;
             }
         }
-        htable[pos].push_back(_p);
-        sizer++;
+        htable[pos].push_back(pair_);
+        size_++;
 
-        if (sizer * 2 >= htable.size()) {
-            std::vector<std::list<std::pair<const KeyType, ValueType>>> htable2;
-            size_t ovser = htable.size() * 2;
-            htable2.resize(ovser);
+        if (size_ * 2 >= htable.size()) {
+            rehash(1);
+        }
+    }
 
-            for (auto & i : htable) {
-                for (auto & e : i) {
-                    size_t pos2 = hasher(e.first) % ovser;
-                    htable2[pos2].push_back(e);
-                }
-            }
-            htable.clear();
-            htable.resize(ovser);
-            for (auto & i : htable2) {
-                for (auto & e : i) {
-                    pos = hasher(e.first) % htable.size();
-                    htable[pos].push_back(e);
-                }
+    void rehash(bool InOrDescrease) {
+        std::vector<std::pair<const KeyType, ValueType>> VecOfHash;
+        for (const auto &i : htable) {
+            for (const auto &e : i) {
+                VecOfHash.push_back(e);
             }
         }
 
+        size_t ReSize;
+        if (InOrDescrease) {
+            ReSize = htable.size() * 2;
+        } else {
+            ReSize = htable.size() / 2;
+        }
+        htable.clear();
+        htable.resize(ReSize);
+        size_ = 0;
+        for (const auto &e : VecOfHash) {
+            insert(e);
+        }
     }
 
     void erase(const KeyType &key) {
-
-        size_t pos = hasher(key) % htable.size();
+        size_t pos = hasher_(key) % htable.size();
         for (auto e = htable[pos].begin(); e != htable[pos].end(); ++e) {
             if (e->first == key) {
                 auto g = htable[pos].end();
@@ -90,27 +90,10 @@ public:
                 for (auto & e : nv) {
                     htable[pos].push_back(e);
                 }
-                sizer--;
+                size_--;
 
-                if (sizer * 2 < htable.size() > htable.size()) {
-                    std::vector<std::list<std::pair<const KeyType, ValueType>>> htable2;
-                    size_t ovser = htable.size() / 2;
-                    htable2.resize(ovser);
-
-                    for (auto & i : htable) {
-                        for (auto & e : i) {
-                            size_t pos2 = hasher(e.first) % htable2.size();
-                            htable2[pos2].push_back(e);
-                        }
-                    }
-                    htable.clear();
-                    htable.resize(ovser);
-                    for (auto & i : htable2) {
-                        for (auto & e : i) {
-                            pos = hasher(e.first) % htable.size();
-                            htable[pos].push_back(e);
-                        }
-                    }
+                if (size_ * 2 > htable.size()) {
+                    rehash(0);
                 }
                 return;
             }
@@ -118,137 +101,133 @@ public:
     }
 
     size_t size() const {
-        return sizer;
+        return size_;
     }
 
     bool empty() const {
-        return (sizer == 0);
+        return (size_ == 0);
     }
 
     Hash hash_function() const {
-        return hasher;
+        return hasher_;
     }
 
-    HashMap & operator= (const HashMap hm) {
-
+    HashMap &operator=(const HashMap hm) {
         htable.clear();
-        sizer = 0;
+        size_ = 0;
         htable.resize(hm.htable.size());
-
-        for (auto & i : hm.htable) {
-            for (auto & e : i) {
-                size_t pos = hasher(e.first) % htable.size();
-                htable[pos].push_back(e);
+        for (const auto & i : hm.htable) {
+            for (const auto & e : i) {
+                insert(e);
             }
         }
         return *this;
     }
 
     //-------------------------------
-    template<bool is_const_it = true>
+    template<bool IsConstIt = true>
     class Iterator {
 
     private:
-        typedef forward_iterator_tag                               iterator_category;
-		typedef pair<const KeyType, ValueType>                     val_type;
-		typedef ptrdiff_t                                          dif_type;
+        typedef std::forward_iterator_tag                               iterator_category;
+		typedef std::pair<const KeyType, ValueType>                     val_type;
+		typedef std::ptrdiff_t                                          dif_type;
 
-		typedef typename conditional<is_const_it,
+		typedef typename std::conditional<IsConstIt,
             const val_type*,
-            val_type*>::type                                       pointer;
+            val_type*>::type                                            pointer;
 
-		typedef typename conditional<is_const_it,
+		typedef typename std::conditional<IsConstIt,
             const val_type&,
-            val_type&>::type                                       refer;
+            val_type&>::type                                            refer;
 
-        typedef typename std::conditional<is_const_it,
+        typedef typename std::conditional<IsConstIt,
                 const HashMap<KeyType, ValueType, Hash>*,
-                HashMap<KeyType, ValueType, Hash>*>::type          Tof_HashMap;
+                HashMap<KeyType, ValueType, Hash>*>::type               TypeOhHashMap;
 
-        typedef typename std::conditional<is_const_it,
+        typedef typename std::conditional<IsConstIt,
                 typename std::vector<val_type>::const_iterator,
-                typename std::vector<val_type>::iterator>::type    Tof_Iter;
+                typename std::vector<val_type>::iterator>::type         TypeOfIter;
 
 
-        Tof_HashMap   hm;
-        Tof_Iter      it;
-        size_t        nei;
+        TypeOhHashMap   hashmap_;
+        TypeOfIter      it_;
+        size_t          itpos;
 
 
     public:
 
         Iterator() {}
 
-        Iterator(bool begin_or_end, Tof_HashMap _hm) : hm(_hm) {
-            if (begin_or_end == 1) {
-                nei = 0;
-                while (hm->htable[nei].empty()) {
-                    if (nei == hm->htable.size() - 1) {
+        Iterator(bool BeginOrEnd, TypeOhHashMap hashmap_) : hashmap_(hashmap_) {
+            if (BeginOrEnd == 1) {
+                itpos = 0;
+                while (hashmap_->htable[itpos].empty()) {
+                    if (itpos == hashmap_->htable.size() - 1) {
                         break;
                     }
-                    nei++;
+                    itpos++;
                 }
-                it = hm->htable[nei].begin();
+                it_ = hashmap_->htable[itpos].begin();
             } else {
-                nei = hm->htable.size() - 1;
-                it = hm->htable[nei].end();
+                itpos = hashmap_->htable.size() - 1;
+                it_ = hashmap_->htable[itpos].end();
             }
 
         }
 
-        Iterator(const KeyType &key, Tof_HashMap _hm) :
-            hm(_hm) {
+        Iterator(const KeyType &key, TypeOhHashMap hashmap_) :
+            hashmap_(hashmap_) {
 
-            size_t pos = hm->hasher(key) % hm->htable.size();
-            for (auto e = hm->htable[pos].begin(); e != hm->htable[pos].end(); ++e) {
+            size_t pos = hashmap_->hasher_(key) % hashmap_->htable.size();
+            for (auto e = hashmap_->htable[pos].begin(); e != hashmap_->htable[pos].end(); ++e) {
                 if (e->first == key) {
-                    nei = pos;
-                    it = e;
+                    itpos = pos;
+                    it_ = e;
                     return;
                 }
             }
-            nei = hm->htable.size() - 1;
-            it = hm->htable[nei].end();
+            itpos = hashmap_->htable.size() - 1;
+            it_ = hashmap_->htable[itpos].end();
         }
 
 
-        Iterator & operator++ () {
-            it++;
-            if (nei == hm->htable.size() - 1) return *this;
-            if (it == hm->htable[nei].end()) {
-                nei++;
-                while (hm->htable[nei].empty()) {
-                    if (nei == hm->htable.size() - 1) {
+        Iterator &operator++() {
+            it_++;
+            if (itpos == hashmap_->htable.size() - 1) return *this;
+            if (it_ == hashmap_->htable[itpos].end()) {
+                itpos++;
+                while (hashmap_->htable[itpos].empty()) {
+                    if (itpos == hashmap_->htable.size() - 1) {
                         break;
                     }
-                    nei++;
+                    itpos++;
                 }
-                it = hm->htable[nei].begin();
+                it_ = hashmap_->htable[itpos].begin();
             }
             return *this;
         }
 
-        Iterator operator++ (int) {
+        Iterator operator++(int) {
             auto it2(*this);
             ++(*this);
 
             return it2;
         }
 
-        bool operator== (const Iterator &it2) const {
-            return (nei == it2.nei && it == it2.it);
+        friend bool operator==(const Iterator &lhs, const Iterator &rhs) {
+            return (lhs.itpos == rhs.itpos && lhs.it_ == rhs.it_);
         }
-
-        bool operator!= (const Iterator &it2) const {
-            return (!(*this == it2));
+        friend bool operator!=(const Iterator &lhs, const Iterator &rhs) {
+            return !(lhs == rhs);
         }
 
         refer operator* () {
-            return *it;
+            return *it_;
         }
 
         pointer operator-> () {
-            return &(*it);
+            return &(*it_);
         }
     };
 
@@ -279,7 +258,7 @@ public:
         return const_iterator(key, this);
     }
 
-    ValueType & operator[] (const KeyType &key) {
+    ValueType &operator[](const KeyType &key) {
 
         iterator it2 = iterator(key, this);
         if (it2 == this->end()) {
@@ -289,7 +268,7 @@ public:
         return it2->second;
     }
 
-    const ValueType & at(const KeyType &key) const {
+    const ValueType &at(const KeyType &key) const {
         const_iterator it2 = const_iterator(key, this);
         if (it2 == this->end()) {
             throw std::out_of_range("");
@@ -299,7 +278,7 @@ public:
 
     void clear() {
         htable.clear();
-        sizer = 0;
+        size_ = 0;
         htable.resize(1);
     }
 };
